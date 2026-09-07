@@ -10,6 +10,25 @@ const Hero = () => {
   const [isAddingLocation, setIsAddingLocation] = useState(false)
   const [newLocationInput, setNewLocationInput] = useState('')
 
+  const handleDateChange = (val, setter) => {
+    if (!val) {
+      setter('')
+      return
+    }
+    const parts = val.split('-')
+    if (parts.length === 3) {
+      let [year, month, day] = parts
+      if (year.length === 4 && (year.startsWith('00') || parseInt(year, 10) < 2000)) {
+        const shortYear = parseInt(year, 10)
+        if (shortYear >= 0 && shortYear < 100) {
+          year = `20${shortYear.toString().padStart(2, '0')}`
+          val = `${year}-${month}-${day}`
+        }
+      }
+    }
+    setter(val)
+  }
+
   const handleSearch = (e) => {
     e.preventDefault()
     let query = `/cars?pickupLocation=${encodeURIComponent(pickupLocation)}`
@@ -17,6 +36,8 @@ const Hero = () => {
     if (returnDate) query += `&returnDate=${returnDate}`
     navigate(query)
   }
+
+  const todayStr = new Date().toISOString().split('T')[0]
 
   return (
     <motion.div
@@ -131,9 +152,10 @@ const Hero = () => {
               type='date'
               id='pickup-date'
               value={pickupDate}
-              onChange={(e) => setPickupDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
-              className='px-3 py-1.5 border border-borderColor rounded-lg text-sm text-gray-700 outline-none w-full'
+              onChange={(e) => handleDateChange(e.target.value, setPickupDate)}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              min={todayStr}
+              className='px-3 py-1.5 border border-borderColor rounded-lg text-sm text-gray-700 outline-none w-full bg-white cursor-pointer'
               required
             />
           </div>
@@ -145,8 +167,10 @@ const Hero = () => {
               type='date'
               id='return-date'
               value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-              className='px-3 py-1.5 border border-borderColor rounded-lg text-sm text-gray-700 outline-none w-full'
+              onChange={(e) => handleDateChange(e.target.value, setReturnDate)}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              min={pickupDate || todayStr}
+              className='px-3 py-1.5 border border-borderColor rounded-lg text-sm text-gray-700 outline-none w-full bg-white cursor-pointer'
               required
             />
           </div>

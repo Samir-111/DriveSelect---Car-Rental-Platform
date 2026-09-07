@@ -45,32 +45,43 @@ res.json({ success: true, message: "Car added successfully" })
     try {
         const { _id } = req.user;
         let carData = JSON.parse(req.body.carData);
-        const imageFile = req.file;
-        if (!imageFile) {
+        
+        // Support multiple uploaded images from req.files or single from req.file
+        let imageFiles = [];
+        if (req.files && req.files.length > 0) {
+            imageFiles = req.files;
+        } else if (req.file) {
+            imageFiles = [req.file];
+        }
+
+        if (imageFiles.length === 0) {
             return res.json({ success: false, message: "Car image is required" });
         }
 
-        // upload image to imagekit
-        const fileBuffer = fs.readFileSync(imageFile.path);
-        const response = await imagekit.upload({
-            file: fileBuffer,
-            fileName: imageFile.originalname,
-            folder: '/cars'
+        // Upload all images to ImageKit in parallel
+        const uploadPromises = imageFiles.map(async (file) => {
+            const fileBuffer = fs.readFileSync(file.path);
+            const response = await imagekit.upload({
+                file: fileBuffer,
+                fileName: file.originalname,
+                folder: '/cars'
+            });
+
+            return imagekit.url({
+                path: response.filePath,
+                transformation: [
+                    { width: '1280' },
+                    { quality: 'auto' },
+                    { format: 'webp' }
+                ]
+            });
         });
 
-        // optimization through imagekit URL transformation
-        var optimizedImageUrl = imagekit.url({
-            path : response.filePath,
-            transformation : [
-                {width: '1280'}, // Width resizing
-                {quality: 'auto'}, // Auto compression
-                { format: 'webp' } // Convert to modern format
-            ]
-        });
+        const imageUrls = await Promise.all(uploadPromises);
+        const image = imageUrls[0] || '';
+        const images = imageUrls;
 
-        const image = optimizedImageUrl;
-
-        await Car.create({ ...carData, owner: _id, image });
+        await Car.create({ ...carData, owner: _id, image, images });
 
         res.json({ success: true, message: "Car added successfully" });
 
@@ -144,6 +155,69 @@ export const deleteCar = async (req, res) => {
 };
 
 export const deleteCars = deleteCar;
+
+// API to update car details
+export const updateCar = async (req, res) => {
+    try {
+        const { _id } = req.user;
+        const carId = req.body.carId;
+        
+        const car = await Car.findById(carId);
+        if (!car || car.owner.toString() !== _id.toString()) {
+            return res.json({ success: false, message: "Unauthorized or car not found" });
+        }
+
+        let updatedData = {};
+        if (req.body.carData) {
+            try {
+                updatedData = typeof req.body.carData === 'string' ? JSON.parse(req.body.carData) : req.body.carData;
+            } catch (err) {
+                updatedData = req.body;
+            }
+        } else {
+            updatedData = { ...req.body };
+        }
+
+        // Handle new images if uploaded
+        let imageFiles = [];
+        if (req.files && req.files.length > 0) {
+            imageFiles = req.files;
+        } else if (req.file) {
+            imageFiles = [req.file];
+        }
+
+        if (imageFiles.length > 0) {
+            const uploadPromises = imageFiles.map(async (file) => {
+                const fileBuffer = fs.readFileSync(file.path);
+                const response = await imagekit.upload({
+                    file: fileBuffer,
+                    fileName: file.originalname,
+                    folder: '/cars'
+                });
+                return imagekit.url({
+                    path: response.filePath,
+                    transformation: [
+                        { width: '1280' },
+                        { quality: 'auto' },
+                        { format: 'webp' }
+                    ]
+                });
+            });
+
+            const newImageUrls = await Promise.all(uploadPromises);
+            updatedData.images = newImageUrls;
+            updatedData.image = newImageUrls[0];
+        }
+
+        const updatedCar = await Car.findByIdAndUpdate(carId, { $set: updatedData }, { new: true });
+
+        res.json({ success: true, message: "Car details updated successfully", car: updatedCar });
+
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message });
+    }
+};
 
 // API to get Dashboard data 
 export const getDashboardData = async (req, res) => {

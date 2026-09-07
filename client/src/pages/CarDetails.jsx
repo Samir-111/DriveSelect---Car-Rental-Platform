@@ -12,12 +12,16 @@ const CarDetails = () => {
   const { currency, cars, axios, user, setShowLogin, pickupDate: ctxPickupDate, returnDate: ctxReturnDate } = useAppContext()
 
   const [car, setCar] = useState(null)
+  const [activeImage, setActiveImage] = useState('')
   const [pickupDate, setPickupDate] = useState(ctxPickupDate || '')
   const [returnDate, setReturnDate] = useState(ctxReturnDate || '')
 
   useEffect(() => {
     const foundCar = cars?.find((item) => item._id === id) || dummyCarData.find((item) => item._id === id)
-    setCar(foundCar || dummyCarData[0])
+    const currentCar = foundCar || dummyCarData[0]
+    setCar(currentCar)
+    const initialImg = (currentCar?.images && currentCar.images.length > 0) ? currentCar.images[0] : (currentCar?.image || '')
+    setActiveImage(initialImg)
   }, [id, cars])
 
   const calculateTotal = () => {
@@ -66,6 +70,29 @@ const CarDetails = () => {
     return <Loader />
   }
 
+  const carImages = (car?.images && car.images.length > 0) ? car.images : (car?.image ? [car.image] : [])
+
+  const handleDateChange = (val, setter) => {
+    if (!val) {
+      setter('')
+      return
+    }
+    const parts = val.split('-')
+    if (parts.length === 3) {
+      let [year, month, day] = parts
+      if (year.length === 4 && (year.startsWith('00') || parseInt(year, 10) < 2000)) {
+        const shortYear = parseInt(year, 10)
+        if (shortYear >= 0 && shortYear < 100) {
+          year = `20${shortYear.toString().padStart(2, '0')}`
+          val = `${year}-${month}-${day}`
+        }
+      }
+    }
+    setter(val)
+  }
+
+  const todayStr = new Date().toISOString().split('T')[0]
+
   return (
     <div className='px-6 md:px-10 lg:px-24 xl:px-32 mt-10 min-h-[80vh] pb-16'>
       <button
@@ -77,25 +104,60 @@ const CarDetails = () => {
       </button>
 
       <div className='grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12'>
-        {/* Left: Car Image & Details */}
+        {/* Left: Car Image Gallery & Details */}
         <motion.div 
         initial={{ opacity: 0, y:30 }}
         animate={{ opacity: 1, y:0 }}
         transition={{ duration: 0.5 }}
         className='lg:col-span-2'>
-          <motion.img
-          initial={{ scale:0.98, opacity: 0 }}
-           animate={{ scale:1, opacity: 1}}
-           transition={{ duration: 0.5 }}
-            src={car.image}
-            alt={`${car.brand} ${car.model}`}
-            className='w-full h-auto md:max-h-100 object-cover rounded-xl mb-6 shadow-md'
-          />
+          {/* Main Featured Photo */}
+          <div className='relative w-full h-72 sm:h-96 md:h-[420px] rounded-2xl overflow-hidden bg-gray-100 shadow-md'>
+            <motion.img
+              key={activeImage}
+              initial={{ opacity: 0.8 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              src={activeImage || car.image}
+              alt={`${car.brand} ${car.model}`}
+              className='w-full h-full object-cover'
+            />
+            {carImages.length > 1 && (
+              <div className='absolute bottom-3 right-3 bg-black/60 backdrop-blur-xs text-white text-xs font-medium px-3 py-1 rounded-full'>
+                {carImages.indexOf(activeImage) + 1} / {carImages.length} Photos
+              </div>
+            )}
+          </div>
+
+          {/* Interactive Thumbnails Strip (Exterior, Interior, Angles) */}
+          {carImages.length > 1 && (
+            <div className='flex items-center gap-3 mt-3.5 overflow-x-auto pb-2'>
+              {carImages.map((img, index) => (
+                <button
+                  key={index}
+                  type='button'
+                  onClick={() => setActiveImage(img)}
+                  className={`relative w-20 h-16 sm:w-24 sm:h-18 shrink-0 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                    activeImage === img
+                      ? 'border-primary ring-2 ring-primary/40 scale-105 shadow-sm'
+                      : 'border-transparent opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={img}
+                    alt={`Angle ${index + 1}`}
+                    className='w-full h-full object-cover'
+                  />
+                  <div className='absolute inset-0 bg-black/5 hover:bg-transparent transition-colors' />
+                </button>
+              ))}
+            </div>
+          )}
+
           <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1}}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className='space-y-6'>
+          className='space-y-6 mt-6'>
 
 
             <div>
@@ -153,10 +215,11 @@ const CarDetails = () => {
               type='date'
               id='pickup-date'
               value={pickupDate}
-              onChange={(e) => setPickupDate(e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => handleDateChange(e.target.value, setPickupDate)}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              min={todayStr}
               required
-              className='w-full px-4 py-3 border border-borderColor rounded-xl text-sm outline-none text-gray-700 focus:border-primary'
+              className='w-full px-4 py-3 border border-borderColor rounded-xl text-sm outline-none text-gray-700 focus:border-primary bg-white cursor-pointer'
             />
           </div>
 
@@ -168,10 +231,11 @@ const CarDetails = () => {
               type='date'
               id='return-date'
               value={returnDate}
-              onChange={(e) => setReturnDate(e.target.value)}
-              min={pickupDate || new Date().toISOString().split('T')[0]}
+              onChange={(e) => handleDateChange(e.target.value, setReturnDate)}
+              onClick={(e) => e.target.showPicker && e.target.showPicker()}
+              min={pickupDate || todayStr}
               required
-              className='w-full px-4 py-3 border border-borderColor rounded-xl text-sm outline-none text-gray-700 focus:border-primary'
+              className='w-full px-4 py-3 border border-borderColor rounded-xl text-sm outline-none text-gray-700 focus:border-primary bg-white cursor-pointer'
             />
           </div>
 

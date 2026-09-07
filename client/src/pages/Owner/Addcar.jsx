@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast'
 
 const AddCar = () => {
   const { currency, axios, fetchCars, locations, addLocation } = useAppContext()
-  const [image, setImage] = useState(null)
+  const [images, setImages] = useState([])
   const [isAddingLocation, setIsAddingLocation] = useState(false)
   const [newLocationInput, setNewLocationInput] = useState('')
 
@@ -24,14 +24,42 @@ const AddCar = () => {
   })
 
   const [isLoading, setIsloading] = useState(false)
+
+  const handleImageChange = (e) => {
+    const selectedFiles = Array.from(e.target.files)
+    if (selectedFiles.length === 0) return
+
+    if (images.length + selectedFiles.length > 8) {
+      toast.error("You can upload a maximum of 8 images")
+      return
+    }
+
+    setImages((prev) => [...prev, ...selectedFiles])
+    // Reset file input so same file can be re-selected if deleted
+    e.target.value = ''
+  }
+
+  const removeImage = (indexToRemove) => {
+    setImages((prev) => prev.filter((_, index) => index !== indexToRemove))
+  }
+
   const onSubmitHandler = async (e) => {
     e.preventDefault()
     if(isLoading) return null 
 
+    if (images.length === 0) {
+      toast.error("Please upload at least one image of your car")
+      return
+    }
+
     setIsloading(true)
     try {
       const formData = new FormData()
-      formData.append('image', image)
+      images.forEach((img) => {
+        formData.append('images', img)
+      })
+      // Fallback single image field
+      formData.append('image', images[0])
       formData.append('carData', JSON.stringify(car))
 
       const {data} = await axios.post('/api/owner/add-car', formData)
@@ -39,11 +67,11 @@ const AddCar = () => {
       if(data.success){
         toast.success(data.message)
         fetchCars()
-        setImage(null)
+        setImages([])
         setCar({
           brand: '',
           model: '',
-          year: '',
+          year: new Date().getFullYear(),
           category: '',
           seating_capacity: '',
           fuel_type: '',
@@ -65,26 +93,86 @@ const AddCar = () => {
 
   return (
     <div className='max-w-4xl px-4 pt-10 md:px-10 flex-1 pb-16'>
-      <Title title="Add New Car" subTitle="List a new vehicle for rental" align="left" />
+      <Title title="Add New Car" subTitle="List a new vehicle for rental with multi-angle photos" align="left" />
 
-      <form onSubmit={onSubmitHandler} className='flex flex-col gap-5 text-gray-500 text-sm mt-6 max-w-xl'>
-        {/* Car Image */}
-        <div className='flex items-center gap-2 w-full'>
-          <label htmlFor="car-image">
-            <img
-              src={image ? URL.createObjectURL(image) : assets.upload_icon}
-              alt=""
-              className='h-14 rounded cursor-pointer'
-            />
-            <input
-              type="file"
-              id="car-image"
-              accept="image/*"
-              hidden
-              onChange={(e) => setImage(e.target.files[0])}
-            />
-          </label>
-          <p className='text-sm text-gray-500'>Upload a picture of your car</p>
+      <form onSubmit={onSubmitHandler} className='flex flex-col gap-6 text-gray-500 text-sm mt-6 max-w-2xl'>
+        {/* Car Images (Multi-image: Exterior, Interior, Angles) */}
+        <div className='flex flex-col gap-2 w-full p-4 border border-borderColor rounded-2xl bg-white shadow-xs'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-sm font-semibold text-gray-700'>Car Photos (Exterior, Interior & Angles)</p>
+              <p className='text-xs text-gray-400 mt-0.5'>Upload multiple photos so renters can explore every angle (Up to 8 photos)</p>
+            </div>
+            {images.length > 0 && (
+              <span className='text-xs font-medium px-2.5 py-1 bg-primary/10 text-primary rounded-full'>
+                {images.length} / 8 uploaded
+              </span>
+            )}
+          </div>
+
+          {/* Grid of uploaded image previews */}
+          <div className='grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3'>
+            {images.map((img, index) => (
+              <div key={index} className='relative group aspect-4/3 rounded-xl overflow-hidden border border-borderColor bg-gray-50 shadow-xs'>
+                <img
+                  src={URL.createObjectURL(img)}
+                  alt={`car angle ${index + 1}`}
+                  className='w-full h-full object-cover'
+                />
+                
+                {/* Badge for Cover Image vs angle */}
+                <div className='absolute bottom-1.5 left-1.5'>
+                  {index === 0 ? (
+                    <span className='text-[10px] font-semibold bg-primary text-white px-2 py-0.5 rounded-md shadow'>
+                      ⭐ Cover
+                    </span>
+                  ) : (
+                    <span className='text-[10px] font-medium bg-black/60 text-white px-1.5 py-0.5 rounded-md backdrop-blur-xs'>
+                      Photo {index + 1}
+                    </span>
+                  )}
+                </div>
+
+                {/* Remove button */}
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  className='absolute top-1.5 right-1.5 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs shadow-md transition-transform hover:scale-110 cursor-pointer'
+                  title="Remove image"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+
+            {/* Add More Photos Card button */}
+            {images.length < 8 && (
+              <label
+                htmlFor="car-images-input"
+                className='flex flex-col items-center justify-center aspect-4/3 border-2 border-dashed border-borderColor hover:border-primary rounded-xl cursor-pointer bg-gray-50/60 hover:bg-primary/5 transition-all group'
+              >
+                <img
+                  src={assets.upload_icon}
+                  alt="upload"
+                  className='h-7 w-7 opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all'
+                />
+                <span className='text-xs font-medium text-gray-500 group-hover:text-primary mt-1.5'>
+                  {images.length === 0 ? 'Upload Photos' : '+ Add More'}
+                </span>
+                <span className='text-[10px] text-gray-400'>
+                  {images.length === 0 ? 'Exterior & Interior' : 'Angles'}
+                </span>
+                <input
+                  type="file"
+                  id="car-images-input"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={handleImageChange}
+                />
+              </label>
+            )}
+          </div>
         </div>
 
         {/* Car Details */}

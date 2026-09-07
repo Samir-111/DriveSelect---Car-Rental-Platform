@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { assets } from '../assets/assets'
 
 const CarCards = ({ car }) => {
-  const currency = import.meta.env.VITE_CURRENCY || '$'
+  const currency = import.meta.env.VITE_CURRENCY || '₹'
   const navigate = useNavigate()
 
   const handleCardClick = () => {
