@@ -1,9 +1,10 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { assets } from '../assets/assets'
+import { useAppContext } from '../context/AppContext'
 
 const CarCards = ({ car }) => {
-  const currency = import.meta.env.VITE_CURRENCY || '₹'
+  const { currency = '₹' } = useAppContext() || {}
   const navigate = useNavigate()
 
   const handleCardClick = () => {
