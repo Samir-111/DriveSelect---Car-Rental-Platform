@@ -95,13 +95,20 @@ const ManageBookings = () => {
                       <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                         booking.paymentStatus === 'paid'
                           ? 'bg-emerald-100 text-emerald-800'
+                          : booking.status === 'cancelled'
+                          ? 'bg-gray-100 text-gray-600'
                           : 'bg-amber-100 text-amber-800'
                       }`}>
-                        {booking.paymentStatus === 'paid' ? '● Paid (To Bank)' : '○ Pay on Pickup'}
+                        {booking.paymentStatus === 'paid' ? '● Paid (Online)' : booking.status === 'cancelled' ? '— Cancelled' : '○ Pay on Pickup'}
                       </span>
                       <span className='text-[11px] text-gray-500 uppercase font-mono'>
                         {booking.paymentMethod || 'offline'}
                       </span>
+                      {booking.refundStatus && booking.refundStatus !== 'not_applicable' && (
+                        <span className='text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200'>
+                          💸 Refund: {booking.refundStatus} ({currency}{booking.refundAmount || booking.price})
+                        </span>
+                      )}
                     </div>
                   </td>
 
@@ -117,15 +124,25 @@ const ManageBookings = () => {
                       <option value="confirmed">Confirmed</option>
                     </select>
                   ) : (
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
-                      booking.status === 'confirmed'
-                        ? 'bg-green-100 text-green-700'
-                        : booking.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {booking.status}
-                    </span>
+                    <div className='flex flex-col gap-1 items-start'>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
+                        booking.status === 'confirmed'
+                          ? 'bg-green-100 text-green-700'
+                          : booking.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {booking.status === 'cancelled' ? '● Cancelled' : booking.status}
+                      </span>
+                      {booking.status === 'cancelled' && booking.cancellationReason && (
+                        <div className='text-[11px] text-gray-500 max-w-[200px] leading-tight'>
+                          <span className='font-medium text-gray-700'>Reason:</span> {booking.cancellationReason}
+                          {booking.cancelledBy && (
+                            <span className='block text-[10px] text-gray-400 capitalize'>By: {booking.cancelledBy}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </td>
               </tr>

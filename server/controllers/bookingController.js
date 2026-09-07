@@ -345,3 +345,64 @@ export const changeBookingStatus = async (req, res) => {
 };
 
 export const changeBooingStatus = changeBookingStatus;
+
+// API for Customer to cancel a booking
+export const cancelUserBooking = async (req, res) => {
+    try {
+        const { _id } = req.user;
+        const { bookingId, reason } = req.body;
+
+        const booking = await Booking.findById(bookingId).populate("car");
+        if (!booking) {
+            return res.json({ success: false, message: "Booking not found" });
+        }
+
+        // Verify booking belongs to this user
+        if (booking.user.toString() !== _id.toString()) {
+            return res.json({ success: false, message: "Unauthorized to cancel this booking" });
+        }
+
+        if (booking.status === "cancelled") {
+            return res.json({ success: false, message: "Booking is already cancelled" });
+        }
+
+        booking.status = "cancelled";
+        booking.cancelledBy = "user";
+        booking.cancelledAt = new Date();
+        booking.cancellationReason = reason || "Customer requested cancellation";
+
+        // Refund calculation
+        if (booking.paymentStatus === "paid") {
+            booking.refundStatus = "initiated";
+            booking.refundAmount = booking.price; // 100% full refund
+        } else {
+            booking.refundStatus = "not_applicable";
+            booking.refundAmount = 0;
+
+            // If it was Cash / Pay on Pickup with pending commission dues on the owner, reverse the dues
+            if (booking.commissionStatus === "due") {
+                await User.findByIdAndUpdate(booking.owner, {
+                    $inc: {
+                        'wallet.cashCollected': -booking.price,
+                        'wallet.platformCommissionDue': -booking.platformFee,
+                        'wallet.totalEarned': -booking.ownerEarning
+                    }
+                });
+                booking.commissionStatus = "settled"; // voided
+            }
+        }
+
+        await booking.save();
+
+        res.json({
+            success: true,
+            message: booking.paymentStatus === "paid"
+                ? `Booking cancelled successfully! Full refund of ₹${booking.price} has been initiated to your original payment method.`
+                : "Booking cancelled successfully! No charges applied.",
+            booking
+        });
+    } catch (error) {
+        console.log("cancelUserBooking error:", error.message);
+        res.json({ success: false, message: error.message });
+    }
+};
