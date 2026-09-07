@@ -8,14 +8,15 @@ import {MotionConfig} from 'motion/react'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AppProvider>
-        <MotionConfig viewport={{once: true}}>
-          <App />
+    <BrowserRouter>       {/* 1. Pure app me URLs aur Routing enable karta hai */}
+      <AppProvider>       {/* 2. Global State (AppContext) sabhi components ko provide karta hai */}
+        <MotionConfig viewport={{once: true}}> {/* 3. Smooth animations ke liye */}
+          <App />         {/* 4. Humara Main App component */}
         </MotionConfig>
       </AppProvider>
     </BrowserRouter>
   </React.StrictMode>
 )
+
 
 

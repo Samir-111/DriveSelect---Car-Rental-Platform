@@ -1,7 +1,33 @@
+/*
+====================================================================
+               JWT AUTHENTICATION FLOW DIAGRAM
+====================================================================
+
+Frontend Request (Header: token / authorization)
+              │
+              ▼
+   [ protect Middleware (auth.js) ]
+              │
+     Token mila kya? ─── NO ───► res.json({ success: false, message: "not authorized" })
+              │ YES
+     Secret key se match hua? ─── NO ───► res.json({ success: false, message: "not authorized" })
+              │ YES
+     DB mein User mila? ─── NO ───► res.json({ success: false, message: "not authorized" })
+              │ YES
+     req.user = user
+     req.userId = userId
+              │
+              ▼
+           next() ───► [ Booking / User / Owner Controller chalega ]
+
+====================================================================
+*/
+
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
 export const protect = async (req, res, next) => {
+    // Part 1: Security Check
     const rawToken = req.headers.authorization || req.headers.token;
     if (!rawToken) {
         return res.json({ success: false, message: "not authorized" });
@@ -10,6 +36,7 @@ export const protect = async (req, res, next) => {
     const token = rawToken.startsWith('Bearer ') ? rawToken.split(' ')[1] : rawToken;
 
     try {
+        // Part 2: JWT Decode aur ID Extraction
         let decoded;
         try {
             decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret_key');
@@ -22,6 +49,8 @@ export const protect = async (req, res, next) => {
         if (!userId) {
             return res.json({ success: false, message: "not authorized" });
         }
+
+        // Part 3: Database mein User Check Karna & Request mein Attach Karna
 
         const user = await User.findById(userId).select("-password");
         if (!user) {
@@ -41,5 +70,6 @@ export const protect = async (req, res, next) => {
 
 const userAuth = protect;
 export default userAuth;
+
 
 

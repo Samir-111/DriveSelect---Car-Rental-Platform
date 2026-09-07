@@ -17,6 +17,31 @@ export const changeRoleToOwner = async (req, res) => {
 
 // API to list car
 export const addCar = async (req, res) => {
+/*
+====================================================================
+                FLOW: CONTROLLER + MULTIPART FORM-DATA
+====================================================================
+
+Frontend (Add Car Form)
+    │
+    │ POST /api/cars
+    │ Body: { text data + [FILE] image }
+    │ Content-Type: multipart/form-data
+    ▼
+[ multer middleware]
+    │ req.file ✅ | req.body ✅
+    ▼
+[ OwnerController.addCar ]
+    │
+    │ 1. req.user se ownerId nikala
+    │ 2. JSON.parse(req.body.carData) kiya
+    │ 3. ImageKit mein upload kiya
+    │ 4. Car create kiya
+    │
+    ▼
+res.json({ success: true, message: "Car added successfully" })
+*/
+
     try {
         const { _id } = req.user;
         let carData = JSON.parse(req.body.carData);

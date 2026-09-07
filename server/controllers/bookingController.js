@@ -14,6 +14,37 @@ const checkAvailablity = async (carId, pickupDate, returnDate) => {
 
 // API to check availability of cars for given date and location
 export const checkAvailablityOfCar = async (req, res) => {
+    /*
+====================================================================
+       FLOW: CHECK AVAILABILITY (FRONTEND → CONTROLLER)
+====================================================================
+
+Frontend Request:
+   │
+   │ POST /api/bookings/check
+   │ Body: { location, pickupDate, returnDate }
+   │ Header: Authorization: Bearer <token>
+   ▼
+[ protect middleware ] ✓ User authenticated
+   │
+   ▼
+[ BookingController.checkAvailablityOfCar ]
+   │
+   ├─ req.body.location, pickupDate, returnDate लिया
+   │
+   ├─ DB mein cars search ki
+   │
+   ├─ har car ke liye checkAvailablity() run kiya
+   │    ↓
+   │    (Agar purani booking overlapping hai → NOT available)
+   │    (Agar no overlapping → available)
+   │
+   └─ Filter karke available cars return ki
+   │
+   ▼
+res.json({ success: true, availableCars: [...] })
+*/
+
     try {
         const { location, pickupDate, returnDate } = req.body;
 
