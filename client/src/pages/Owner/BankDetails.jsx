@@ -15,9 +15,16 @@ const BankDetails = () => {
     bankName: 'HDFC Bank',
     upiId: ''
   })
+  const [wallet, setWallet] = useState({
+    totalEarned: 0,
+    cashCollected: 0,
+    platformCommissionDue: 0,
+    onlineSettled: 0
+  })
   const [isConfigured, setIsConfigured] = useState(false)
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
+  const [clearingDues, setClearingDues] = useState(false)
 
   const fetchBankDetails = async () => {
     try {
@@ -33,6 +40,9 @@ const BankDetails = () => {
           upiId: data.bankDetails.upiId || ''
         })
         setIsConfigured(Boolean(data.bankDetails.isConfigured || data.bankDetails.accountNumber || data.bankDetails.upiId))
+        if (data.wallet) {
+          setWallet(data.wallet)
+        }
       }
     } catch (error) {
       console.log('fetchBankDetails error:', error.message)
@@ -46,6 +56,24 @@ const BankDetails = () => {
       fetchBankDetails()
     }
   }, [token])
+
+  const handleClearDues = async () => {
+    if (wallet.platformCommissionDue <= 0) return
+    setClearingDues(true)
+    try {
+      const { data } = await axios.post('/api/owner/clear-commission')
+      if (data.success) {
+        toast.success(data.message || 'Commission cleared successfully!')
+        fetchBankDetails()
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setClearingDues(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -73,6 +101,9 @@ const BankDetails = () => {
       if (data.success) {
         toast.success(data.message || 'Bank Details Saved!')
         setIsConfigured(true)
+        if (data.wallet) {
+          setWallet(data.wallet)
+        }
       } else {
         toast.error(data.message)
       }
@@ -92,9 +123,54 @@ const BankDetails = () => {
     >
       <Title
         title="Bank & Payout Settings"
-        subTitle="Configure your bank account or UPI ID to receive automatic rental payouts"
+        subTitle="Configure your payout accounts and manage your platform earnings & commission wallet"
         align="left"
       />
+
+      {/* Model 2 Commission & Wallet Cards */}
+      <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6'>
+        {/* Cash in Hand */}
+        <div className='p-4 bg-white rounded-2xl border border-borderColor shadow-xs flex flex-col justify-between'>
+          <div>
+            <span className='text-xs text-gray-500 font-medium'>💵 Cash in Hand (Collected)</span>
+            <p className='text-xl font-bold text-gray-800 mt-1'>₹{wallet.cashCollected || 0}</p>
+          </div>
+          <span className='text-[11px] text-gray-400 mt-2'>Direct from Pay on Pickup bookings</span>
+        </div>
+
+        {/* Online Payouts */}
+        <div className='p-4 bg-white rounded-2xl border border-borderColor shadow-xs flex flex-col justify-between'>
+          <div>
+            <span className='text-xs text-emerald-700 font-medium'>🏦 Online Payouts (Settled)</span>
+            <p className='text-xl font-bold text-emerald-700 mt-1'>₹{wallet.onlineSettled || 0}</p>
+          </div>
+          <span className='text-[11px] text-emerald-600 mt-2'>Transferred to your Bank / UPI</span>
+        </div>
+
+        {/* Platform Commission Dues */}
+        <div className={`p-4 rounded-2xl border shadow-xs flex flex-col justify-between ${
+          wallet.platformCommissionDue > 0
+            ? 'bg-amber-50/80 border-amber-300'
+            : 'bg-white border-borderColor'
+        }`}>
+          <div>
+            <span className='text-xs font-medium text-amber-800'>⚠️ Platform Commission Due</span>
+            <p className='text-xl font-extrabold text-amber-900 mt-1'>₹{wallet.platformCommissionDue || 0}</p>
+          </div>
+          {wallet.platformCommissionDue > 0 ? (
+            <button
+              type='button'
+              disabled={clearingDues}
+              onClick={handleClearDues}
+              className='mt-2 w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors disabled:opacity-60'
+            >
+              {clearingDues ? 'Clearing...' : '⚡ Pay Commission (UPI)'}
+            </button>
+          ) : (
+            <span className='text-[11px] text-emerald-600 mt-2 font-medium'>✓ All commission dues cleared</span>
+          )}
+        </div>
+      </div>
 
       {/* Payout Status Banner */}
       <div className={`mt-6 p-4 rounded-2xl border flex items-start gap-3.5 ${
@@ -109,7 +185,7 @@ const BankDetails = () => {
           </p>
           <p className='text-gray-600 leading-relaxed'>
             {isConfigured
-              ? 'Your earnings (90% rental share after 10% platform fee) will be directly transferred to your linked bank account or UPI ID upon trip completion.'
+              ? 'Your earnings (90% rental share after 10% platform fee) will be directly transferred to your linked bank account or UPI ID. Any pending cash commission dues are automatically adjusted from future online bookings.'
               : 'Please enter your bank account or UPI ID below so DriveSelect can transfer your earnings for completed bookings.'}
           </p>
         </div>

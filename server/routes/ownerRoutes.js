@@ -4,6 +4,7 @@ import upload from "../middleware/multer.js";
 import { 
     addCar, 
     changeRoleToOwner, 
+    clearCommissionDue,
     deleteCar, 
     getBankDetails,
     getDashboardData, 
@@ -26,5 +27,6 @@ ownerRouter.get('/dashboard', protect, getDashboardData);
 ownerRouter.post('/update-image', protect, upload.single("image"), updateUserImage);
 ownerRouter.get('/bank-details', protect, getBankDetails);
 ownerRouter.post('/bank-details', protect, updateBankDetails);
+ownerRouter.post('/clear-commission', protect, clearCommissionDue);
 
 export default ownerRouter;

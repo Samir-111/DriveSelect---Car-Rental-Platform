@@ -233,18 +233,34 @@ export const getDashboardData = async (req, res) => {
         const pendingBookings = await Booking.find({ owner: _id, status: "pending" });
         const completedBookings = await Booking.find({ owner: _id, status: "confirmed" });
 
-        // calculate monthly revenue from bookings where status is confirmed 
-        const monthlyRevenue = bookings
+        // Calculate total gross and net metrics
+        const totalRevenue = bookings
             .filter(b => b.status === 'confirmed')
             .reduce((acc, b) => acc + (b.price || 0), 0);
+
+        const platformFeeEarned = Math.round(totalRevenue * 0.10);
+        const ownerNetRevenue = totalRevenue - platformFeeEarned;
+
+        // Cash vs Online Breakdown
+        const cashBookings = bookings.filter(b => b.paymentMethod?.toLowerCase().includes('pickup') || b.paymentStatus === 'pending');
+        const totalCashCollected = cashBookings.reduce((acc, b) => acc + (b.price || 0), 0);
+        const cashCommissionDue = Math.round(totalCashCollected * 0.10);
+
+        const ownerUser = await User.findById(_id);
 
         const dashboardData = { 
             totalCars: cars.length,
             totalBookings: bookings.length,
             pendingBookings: pendingBookings.length,
             completedBookings: completedBookings.length,
-            recentBookings: bookings.slice(0, 3),
-            monthlyRevenue
+            recentBookings: bookings.slice(0, 4),
+            monthlyRevenue: totalRevenue,
+            grossRevenue: totalRevenue,
+            ownerNetRevenue,
+            platformFeeEarned,
+            cashCollected: ownerUser?.wallet?.cashCollected || totalCashCollected,
+            platformCommissionDue: ownerUser?.wallet?.platformCommissionDue !== undefined ? ownerUser.wallet.platformCommissionDue : cashCommissionDue,
+            onlineSettled: ownerUser?.wallet?.onlineSettled || 0
         };
 
         res.json({ success: true, dashboardData, dadhbordData: dashboardData });
@@ -293,12 +309,16 @@ export const updateUserImage = async (req, res) => {
     }
 };
 
-// API to get owner bank details
+// API to get owner bank details and commission wallet
 export const getBankDetails = async (req, res) => {
     try {
         const { _id } = req.user;
-        const user = await User.findById(_id).select("bankDetails name email");
-        res.json({ success: true, bankDetails: user?.bankDetails || {} });
+        const user = await User.findById(_id).select("bankDetails wallet name email");
+        res.json({
+            success: true,
+            bankDetails: user?.bankDetails || {},
+            wallet: user?.wallet || { totalEarned: 0, cashCollected: 0, platformCommissionDue: 0, onlineSettled: 0 }
+        });
     } catch (error) {
         console.log(error.message);
         res.json({ success: false, message: error.message });
@@ -324,12 +344,45 @@ export const updateBankDetails = async (req, res) => {
                 }
             },
             { new: true }
-        ).select("bankDetails");
+        ).select("bankDetails wallet");
 
         res.json({
             success: true,
             message: "Bank & Payout details saved successfully! You are ready to receive payouts.",
-            bankDetails: updatedUser.bankDetails
+            bankDetails: updatedUser.bankDetails,
+            wallet: updatedUser.wallet
+        });
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// API to Clear Pending Platform Commission (Model 2: Direct UPI/Card payment by owner)
+export const clearCommissionDue = async (req, res) => {
+    try {
+        const { _id } = req.user;
+        const user = await User.findById(_id);
+        const dueAmount = user?.wallet?.platformCommissionDue || 0;
+
+        if (dueAmount <= 0) {
+            return res.json({ success: true, message: "No pending platform commission dues!" });
+        }
+
+        // Reset commission due to 0
+        await User.findByIdAndUpdate(_id, {
+            $set: { 'wallet.platformCommissionDue': 0 }
+        });
+
+        // Mark all 'due' bookings of this owner as 'paid_direct'
+        await Booking.updateMany(
+            { owner: _id, commissionStatus: 'due' },
+            { $set: { commissionStatus: 'paid_direct' } }
+        );
+
+        res.json({
+            success: true,
+            message: `Platform commission of ₹${dueAmount} cleared successfully via UPI!`
         });
     } catch (error) {
         console.log(error.message);

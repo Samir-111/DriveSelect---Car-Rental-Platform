@@ -13,6 +13,12 @@ const userSchema = new mongoose.Schema({
         bankName: { type: String, default: '' },
         upiId: { type: String, default: '' },
         isConfigured: { type: Boolean, default: false }
+    },
+    wallet: {
+        totalEarned: { type: Number, default: 0 },
+        cashCollected: { type: Number, default: 0 },
+        platformCommissionDue: { type: Number, default: 0 },
+        onlineSettled: { type: Number, default: 0 }
     }
 },{timestamps: true})
 

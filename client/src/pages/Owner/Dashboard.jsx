@@ -99,13 +99,34 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Monthly Revenue Section */}
-        <div className='p-4 md:p-6 border border-borderColor rounded-md max-w-lg w-full bg-white'>
-          <h1 className='text-lg font-semibold'>Monthly Revenue</h1>
-          <p className='text-gray-600 text-sm'>Platform earnings over the past month</p>
-          <div className='mt-6 p-4 bg-gray-50 rounded-xl flex items-center justify-between'>
-            <span className='text-sm font-medium text-gray-600'>Total Earnings</span>
-            <span className='text-2xl font-bold text-gray-900'>{currency}{data.monthlyRevenue}</span>
+        {/* Monthly Revenue & Commission Breakdown */}
+        <div className='p-4 md:p-6 border border-borderColor rounded-2xl max-w-lg w-full bg-white space-y-4 shadow-xs'>
+          <div>
+            <h1 className='text-lg font-semibold text-gray-800'>Earnings & Commission Breakdown</h1>
+            <p className='text-gray-500 text-xs mt-0.5'>Model 2: 90% Owner Net Share • 10% Platform Fee</p>
+          </div>
+
+          <div className='space-y-2.5 text-xs'>
+            <div className='p-3.5 bg-gray-50 rounded-xl flex items-center justify-between'>
+              <span className='font-medium text-gray-600'>Gross Booking Value:</span>
+              <span className='text-base font-bold text-gray-800'>{currency}{data.grossRevenue || data.monthlyRevenue || 0}</span>
+            </div>
+
+            <div className='p-3.5 bg-emerald-50 rounded-xl flex items-center justify-between border border-emerald-100'>
+              <div>
+                <span className='font-bold text-emerald-800 block text-xs'>Your Net Share (90%):</span>
+                <span className='text-[10px] text-emerald-600'>Credited to your bank / kept from cash</span>
+              </div>
+              <span className='text-lg font-extrabold text-emerald-700'>{currency}{data.ownerNetRevenue || Math.round((data.monthlyRevenue || 0) * 0.90)}</span>
+            </div>
+
+            <div className='p-3.5 bg-amber-50 rounded-xl flex items-center justify-between border border-amber-100'>
+              <div>
+                <span className='font-bold text-amber-800 block text-xs'>Platform Commission Due (10% on Cash):</span>
+                <span className='text-[10px] text-amber-600'>Auto-adjusted on online payouts</span>
+              </div>
+              <span className='text-sm font-bold text-amber-800'>{currency}{data.platformCommissionDue || 0}</span>
+            </div>
           </div>
         </div>
       </div>

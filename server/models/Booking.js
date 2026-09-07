@@ -9,8 +9,11 @@ const bookingSchema = new mongoose.Schema({
     returnDate: { type: Date, required: true },
     status: { type: String, enum: ["pending", "confirmed", "cancelled"], default: "pending" },
     price: { type: Number, required: true },
+    platformFee: { type: Number, default: 0 },
+    ownerEarning: { type: Number, default: 0 },
     paymentMethod: { type: String, default: 'Pay on Pickup' },
     paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
+    commissionStatus: { type: String, enum: ["due", "deducted", "settled", "paid_direct"], default: "due" },
     transactionId: { type: String, default: '' }
 }, { timestamps: true })
 
