@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
-import { assets, cityList } from '../assets/assets.js'
+import { assets } from '../assets/assets.js'
 import { useAppContext } from '../context/AppContext.jsx'
 import { motion } from 'motion/react'
+import { toast } from 'react-hot-toast'
 
 const Hero = () => {
-  const { pickupDate, setPickupDate, returnDate, setReturnDate, navigate } = useAppContext()
+  const { pickupDate, setPickupDate, returnDate, setReturnDate, navigate, locations, addLocation } = useAppContext()
   const [pickupLocation, setPickupLocation] = useState('')
+  const [isAddingLocation, setIsAddingLocation] = useState(false)
+  const [newLocationInput, setNewLocationInput] = useState('')
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -41,21 +44,84 @@ const Hero = () => {
         {/* Input fields wrapper */}
         <div className='flex flex-col md:flex-row items-center gap-6 md:gap-8 w-full md:w-auto md:ml-4'>
           {/* Pickup location select field */}
-          <div className='flex flex-col items-start gap-1 w-full md:w-auto'>
+          <div className='flex flex-col items-start gap-1 w-full md:w-auto relative'>
             <label className='text-xs font-medium text-gray-500 uppercase tracking-wider'>Location</label>
             <select
-              value={pickupLocation}
-              onChange={(e) => setPickupLocation(e.target.value)}
-              required
-              className='px-3 py-1.5 border border-borderColor rounded-lg text-gray-700 outline-none w-full text-sm'
+              value={isAddingLocation ? 'ADD_NEW' : pickupLocation}
+              onChange={(e) => {
+                if (e.target.value === 'ADD_NEW') {
+                  setIsAddingLocation(true)
+                } else {
+                  setIsAddingLocation(false)
+                  setPickupLocation(e.target.value)
+                }
+              }}
+              required={!isAddingLocation}
+              className='px-3 py-1.5 border border-borderColor rounded-lg text-gray-700 outline-none w-full text-sm bg-white cursor-pointer'
             >
               <option value=''>Pickup Location</option>
-              {cityList.map((city) => (
+              {locations.map((city) => (
                 <option key={city} value={city}>
                   {city}
                 </option>
               ))}
+              <option value="ADD_NEW" className="text-primary font-medium">+ Add New Location</option>
             </select>
+
+            {isAddingLocation && (
+              <div className='absolute top-full left-0 mt-2 z-50 bg-white p-3 rounded-xl shadow-2xl border border-gray-200 flex flex-col gap-2 min-w-[240px] text-left'>
+                <p className='text-xs font-semibold text-gray-700'>Add Custom Location</p>
+                <input
+                  type='text'
+                  placeholder='e.g. San Francisco, Pune'
+                  value={newLocationInput}
+                  onChange={(e) => setNewLocationInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (newLocationInput.trim()) {
+                        const added = addLocation(newLocationInput)
+                        setPickupLocation(added)
+                        setIsAddingLocation(false)
+                        setNewLocationInput('')
+                        toast.success(`"${added}" added to locations!`)
+                      }
+                    }
+                  }}
+                  className='px-3 py-1.5 border border-borderColor rounded-lg text-xs outline-none focus:border-primary'
+                  autoFocus
+                />
+                <div className='flex items-center justify-end gap-2 mt-1'>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setIsAddingLocation(false)
+                      setNewLocationInput('')
+                    }}
+                    className='px-2.5 py-1 text-xs text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 cursor-pointer'
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      if (!newLocationInput.trim()) {
+                        toast.error("Please enter a location name")
+                        return
+                      }
+                      const added = addLocation(newLocationInput)
+                      setPickupLocation(added)
+                      setIsAddingLocation(false)
+                      setNewLocationInput('')
+                      toast.success(`"${added}" added to locations!`)
+                    }}
+                    className='px-3 py-1 text-xs text-white bg-primary rounded-md hover:bg-primary-dull cursor-pointer font-medium'
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Pickup date input field */}

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import { toast } from 'react-hot-toast'
+import { cityList } from '../assets/assets'
 
 if (import.meta.env.VITE_BASE_URL) {
     axios.defaults.baseURL = import.meta.env.VITE_BASE_URL
@@ -22,6 +23,37 @@ export const AppProvider = ({ children }) => {
     const [returnDate, setReturnDate] = useState('')
 
     const [cars, setCars] = useState([])
+
+    // Locations dynamic state with localStorage persistence
+    const [locations, setLocations] = useState(() => {
+        try {
+            const saved = localStorage.getItem('custom_locations');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return Array.from(new Set([...cityList, ...parsed]));
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        return cityList;
+    });
+
+    const addLocation = (newCity) => {
+        if (!newCity || !newCity.trim()) return null;
+        const formatted = newCity.trim();
+        const existing = locations.find(c => c.toLowerCase() === formatted.toLowerCase());
+        if (existing) {
+            return existing;
+        }
+        const updated = [...locations, formatted];
+        setLocations(updated);
+        try {
+            localStorage.setItem('custom_locations', JSON.stringify(updated));
+        } catch (e) {
+            console.error(e);
+        }
+        return formatted;
+    };
 
     // Function to check if user is logged in 
     const fetchUser = async ()=>{
@@ -80,10 +112,17 @@ export const AppProvider = ({ children }) => {
             fetchUser()
         }
     },[token])
-    
+
+    // Sync database car locations with dropdown locations
+    useEffect(() => {
+        if (cars && cars.length > 0) {
+            const carLocations = cars.map(c => c.location).filter(Boolean);
+            setLocations(prev => Array.from(new Set([...prev, ...carLocations])));
+        }
+    }, [cars]);
 
     const value = {
-        navigate, currency, axios, user, setUser, token, setToken, isOwner, setIsOwner, fetchUser, showLogin, setShowLogin, logout, fetchCars, cars, setCars, pickupDate, setPickupDate, returnDate, setReturnDate
+        navigate, currency, axios, user, setUser, token, setToken, isOwner, setIsOwner, fetchUser, showLogin, setShowLogin, logout, fetchCars, cars, setCars, pickupDate, setPickupDate, returnDate, setReturnDate, locations, setLocations, addLocation
     }
     return (
         <Appcontext.Provider value={value}>
@@ -96,4 +135,5 @@ export const useAppCOntext = () => {
     return useContext(Appcontext)
 }
 
-export const useAppContext = useAppCOntext
+export const useAppContext = useAppCOntext
+

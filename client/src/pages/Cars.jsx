@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import CarCards from '../components/CarCards'
 import Title from '../components/Title'
-import { dummyCarData, assets, cityList } from '../assets/assets'
+import { dummyCarData, assets } from '../assets/assets'
 import { useAppContext } from '../context/AppContext'
 import { toast } from 'react-hot-toast'
-import{motion} from 'motion/react'
+import { motion } from 'motion/react'
 
 const Cars = () => {
-  const { cars, axios } = useAppContext()
+  const { cars, axios, locations, addLocation } = useAppContext()
   const [searchParams] = useSearchParams()
 
   const pickupLocation = searchParams.get('pickupLocation') || searchParams.get('location')
@@ -132,15 +132,27 @@ const Cars = () => {
 
           <select
             value={selectedCity}
-            onChange={(e) => setSelectedCity(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value === 'ADD_NEW') {
+                const newCity = window.prompt("Enter new location/city name:")
+                if (newCity && newCity.trim()) {
+                  const added = addLocation(newCity.trim())
+                  setSelectedCity(added)
+                  toast.success(`"${added}" added to locations!`)
+                }
+              } else {
+                setSelectedCity(e.target.value)
+              }
+            }}
             className='px-4 py-2 border border-borderColor rounded-xl text-sm bg-white text-gray-700 outline-none cursor-pointer'
           >
             <option value='All'>All Locations</option>
-            {cityList.map((city) => (
+            {locations.map((city) => (
               <option key={city} value={city}>
                 {city}
               </option>
             ))}
+            <option value="ADD_NEW" className="text-primary font-medium">+ Add New Location</option>
           </select>
         </div>
 

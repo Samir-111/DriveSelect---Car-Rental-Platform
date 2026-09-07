@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
 import Title from '../../components/Title'
-import { assets, cityList } from '../../assets/assets'
+import { assets } from '../../assets/assets'
 import { useAppContext } from '../../context/AppContext'
 import { toast } from 'react-hot-toast'
 
 const AddCar = () => {
-  const { currency, axios, fetchCars } = useAppContext()
+  const { currency, axios, fetchCars, locations, addLocation } = useAppContext()
   const [image, setImage] = useState(null)
+  const [isAddingLocation, setIsAddingLocation] = useState(false)
+  const [newLocationInput, setNewLocationInput] = useState('')
 
   const [car, setCar] = useState({
     brand: '',
@@ -202,18 +204,93 @@ const AddCar = () => {
 
           {/* Location */}
           <div className='flex flex-col w-full'>
-            <label className='block text-xs font-semibold text-gray-600 uppercase mb-2'>Location</label>
+            <div className='flex items-center justify-between mb-2'>
+              <label className='block text-xs font-semibold text-gray-600 uppercase'>Location</label>
+              {!isAddingLocation && (
+                <button
+                  type="button"
+                  onClick={() => setIsAddingLocation(true)}
+                  className='text-xs text-primary hover:underline font-medium cursor-pointer'
+                >
+                  + Add Other Location
+                </button>
+              )}
+            </div>
+
             <select
-              value={car.location}
-              required
-              onChange={(e) => setCar({ ...car, location: e.target.value })}
+              value={isAddingLocation ? 'ADD_NEW' : car.location}
+              required={!isAddingLocation}
+              onChange={(e) => {
+                if (e.target.value === 'ADD_NEW') {
+                  setIsAddingLocation(true);
+                } else {
+                  setIsAddingLocation(false);
+                  setCar({ ...car, location: e.target.value });
+                }
+              }}
               className='w-full px-4 py-3 border border-borderColor rounded-xl text-sm outline-none focus:border-primary bg-white cursor-pointer'
             >
               <option value="">Select a location</option>
-              {cityList.map((city) => (
+              {locations.map((city) => (
                 <option key={city} value={city}>{city}</option>
               ))}
+              <option value="ADD_NEW" className="text-primary font-semibold">+ Add New Location</option>
             </select>
+
+            {isAddingLocation && (
+              <div className='mt-2.5 p-3 bg-gray-50 border border-borderColor rounded-xl flex flex-col gap-2'>
+                <p className='text-xs font-medium text-gray-600'>Enter New Location / City:</p>
+                <div className='flex items-center gap-2'>
+                  <input
+                    type="text"
+                    placeholder="e.g. San Francisco, Pune, Dallas"
+                    value={newLocationInput}
+                    onChange={(e) => setNewLocationInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newLocationInput.trim()) {
+                          const added = addLocation(newLocationInput);
+                          setCar({ ...car, location: added });
+                          setIsAddingLocation(false);
+                          setNewLocationInput('');
+                          toast.success(`"${added}" added to locations!`);
+                        }
+                      }
+                    }}
+                    className='flex-1 px-3 py-2 border border-borderColor rounded-lg text-sm outline-none focus:border-primary bg-white'
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newLocationInput.trim()) {
+                        toast.error("Please enter a location name");
+                        return;
+                      }
+                      const added = addLocation(newLocationInput);
+                      setCar({ ...car, location: added });
+                      setIsAddingLocation(false);
+                      setNewLocationInput('');
+                      toast.success(`"${added}" added to locations!`);
+                    }}
+                    className='px-3.5 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-dull cursor-pointer'
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingLocation(false);
+                      setNewLocationInput('');
+                    }}
+                    className='px-3 py-2 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300 cursor-pointer'
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
