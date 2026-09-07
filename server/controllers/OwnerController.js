@@ -292,3 +292,47 @@ export const updateUserImage = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
+
+// API to get owner bank details
+export const getBankDetails = async (req, res) => {
+    try {
+        const { _id } = req.user;
+        const user = await User.findById(_id).select("bankDetails name email");
+        res.json({ success: true, bankDetails: user?.bankDetails || {} });
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// API to update owner bank & payout details
+export const updateBankDetails = async (req, res) => {
+    try {
+        const { _id } = req.user;
+        const { accountHolderName, accountNumber, ifscCode, bankName, upiId } = req.body;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            _id,
+            {
+                bankDetails: {
+                    accountHolderName: accountHolderName || '',
+                    accountNumber: accountNumber || '',
+                    ifscCode: ifscCode || '',
+                    bankName: bankName || '',
+                    upiId: upiId || '',
+                    isConfigured: Boolean(accountNumber || upiId)
+                }
+            },
+            { new: true }
+        ).select("bankDetails");
+
+        res.json({
+            success: true,
+            message: "Bank & Payout details saved successfully! You are ready to receive payouts.",
+            bankDetails: updatedUser.bankDetails
+        });
+    } catch (error) {
+        console.log(error.message);
+        res.json({ success: false, message: error.message });
+    }
+};

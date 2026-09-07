@@ -57,31 +57,53 @@ const ManageBookings = () => {
             <tr>
               <th className='p-4'>Car</th>
               <th className='p-4'>Date Range</th>
-              <th className='p-4'>Total Price</th>
-              <th className='p-4 max-md:hidden'>Payment</th>
+              <th className='p-4'>Total / Earning</th>
+              <th className='p-4 max-md:hidden'>Payment & Payout</th>
               <th className='p-4'>Status</th>
             </tr>
           </thead>
           <tbody className='divide-y divide-gray-100'>
-            {bookings.map((booking, index) => (
-              <tr key={booking._id || index} className='hover:bg-gray-50/50 transition-colors'>
-                <td className='p-4 flex items-center gap-3'>
-                  {booking.car && <img src={booking.car.image} alt={booking.car.brand} className='w-14 h-10 object-cover rounded-lg' />}
-                  <div>
-                    <p className='font-semibold text-gray-800'>{booking.car?.brand} {booking.car?.model}</p>
-                    <p className='text-xs text-gray-400'>{booking.car?.location}</p>
-                  </div>
-                </td>
+            {bookings.map((booking, index) => {
+              const platformFee = Math.round((booking.price || 0) * 0.10)
+              const ownerShare = (booking.price || 0) - platformFee
 
-                <td className='p-4 text-xs text-gray-600'>
-                  {formatDate(booking.pickupDate)} to {formatDate(booking.returnDate)}
-                </td>
+              return (
+                <tr key={booking._id || index} className='hover:bg-gray-50/50 transition-colors'>
+                  <td className='p-4 flex items-center gap-3'>
+                    {booking.car && <img src={booking.car.image} alt={booking.car.brand} className='w-14 h-10 object-cover rounded-lg' />}
+                    <div>
+                      <p className='font-semibold text-gray-800'>{booking.car?.brand} {booking.car?.model}</p>
+                      <p className='text-xs text-gray-400'>{booking.car?.location}</p>
+                    </div>
+                  </td>
 
-                <td className='p-4 font-semibold text-gray-900'>{currency}{booking.price}</td>
+                  <td className='p-4 text-xs text-gray-600'>
+                    {formatDate(booking.pickupDate)} to {formatDate(booking.returnDate)}
+                  </td>
 
-                <td className='p-4 max-md:hidden'>
-                  <span className='bg-gray-100 px-3 py-1 rounded-full text-xs font-medium text-gray-600'>offline</span>
-                </td>
+                  <td className='p-4'>
+                    <div className='flex flex-col'>
+                      <span className='font-bold text-gray-900'>{currency}{booking.price}</span>
+                      <span className='text-[11px] text-emerald-700 font-medium'>
+                        Net: {currency}{ownerShare} <span className='text-[10px] text-gray-400'>(-10% fee)</span>
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className='p-4 max-md:hidden'>
+                    <div className='flex flex-col gap-1 items-start'>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+                        booking.paymentStatus === 'paid'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {booking.paymentStatus === 'paid' ? '● Paid (To Bank)' : '○ Pay on Pickup'}
+                      </span>
+                      <span className='text-[11px] text-gray-500 uppercase font-mono'>
+                        {booking.paymentMethod || 'offline'}
+                      </span>
+                    </div>
+                  </td>
 
                 <td className='p-4'>
                   {booking.status === 'pending' ? (
@@ -107,7 +129,7 @@ const ManageBookings = () => {
                   )}
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>

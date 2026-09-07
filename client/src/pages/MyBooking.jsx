@@ -113,17 +113,39 @@ const MyBooking = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* Payment Info */}
+                <div className='flex flex-wrap items-center gap-2 mt-3 text-xs'>
+                  <span className='text-gray-500 font-medium'>Payment:</span>
+                  <span className={`px-2.5 py-0.5 rounded-full font-medium ${
+                    booking.paymentStatus === 'paid'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    {booking.paymentStatus === 'paid' ? '● Paid' : '○ Pay at Pickup'}
+                  </span>
+                  {booking.paymentMethod && (
+                    <span className='px-2 py-0.5 rounded bg-gray-100 text-gray-600 uppercase font-mono text-[10px]'>
+                      {booking.paymentMethod}
+                    </span>
+                  )}
+                  {booking.transactionId && (
+                    <span className='text-gray-400 font-mono text-[11px]'>
+                      TXN: {booking.transactionId}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Price */}
-            <div className='md:col-span-1 flex flex-col justify-between gap-6'>
-              <div className='text-sm text-gray-500 text-right'>
+            <div className='md:col-span-1 flex flex-col justify-between items-start sm:items-end gap-3'>
+              <div className='text-sm text-gray-500 sm:text-right'>
                 <p>Total Price</p>
                 <h1 className='text-2xl font-semibold text-primary'>{currency}{booking.price}</h1>
-                {booking.createdAt && <p>Booked on {formatDate(booking.createdAt)}</p>}
-             </div>
-           </div>
+                {booking.createdAt && <p className='text-xs text-gray-400 mt-0.5'>Booked on {formatDate(booking.createdAt)}</p>}
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>

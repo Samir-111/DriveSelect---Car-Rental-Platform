@@ -5,9 +5,11 @@ import {
     addCar, 
     changeRoleToOwner, 
     deleteCar, 
+    getBankDetails,
     getDashboardData, 
     getOwnerCars, 
     toggleCarAvailability,
+    updateBankDetails,
     updateCar,
     updateUserImage 
 } from "../controllers/OwnerController.js";
@@ -22,5 +24,7 @@ ownerRouter.post("/toggle-car", protect, toggleCarAvailability);
 ownerRouter.post("/delete-car", protect, deleteCar);
 ownerRouter.get('/dashboard', protect, getDashboardData);
 ownerRouter.post('/update-image', protect, upload.single("image"), updateUserImage);
+ownerRouter.get('/bank-details', protect, getBankDetails);
+ownerRouter.post('/bank-details', protect, updateBankDetails);
 
 export default ownerRouter;

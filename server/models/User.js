@@ -6,6 +6,14 @@ const userSchema = new mongoose.Schema({
     password: {type: String, required: true },
     role: {type: String, enum: ["owner", "user"], default: 'user' },
     image: {type: String, default: ''},
+    bankDetails: {
+        accountHolderName: { type: String, default: '' },
+        accountNumber: { type: String, default: '' },
+        ifscCode: { type: String, default: '' },
+        bankName: { type: String, default: '' },
+        upiId: { type: String, default: '' },
+        isConfigured: { type: Boolean, default: false }
+    }
 },{timestamps: true})
 
 const User = mongoose.models.User || mongoose.model('User', userSchema)
